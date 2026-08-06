@@ -2,23 +2,19 @@ use std::f64::consts::PI;
 
 use geo_types::*;
 
-#[non_exhaustive]
-#[derive(Debug, PartialEq)]
-pub enum Error {}
-
 pub trait TileCover {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error>;
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)>;
 }
 
 impl<T: CoordFloat> TileCover for Point<T> {
     /// Get a list of all tiles covering a given geometry
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
-        Ok(vec![coord_to_tile(self.0, zoom)])
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
+        vec![coord_to_tile(self.0, zoom)]
     }
 }
 
 impl<T: CoordFloat> TileCover for MultiPoint<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<_> = self
             .0
             .iter()
@@ -28,12 +24,12 @@ impl<T: CoordFloat> TileCover for MultiPoint<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for LineString<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         line_cover(&mut tiles, self, zoom, None);
@@ -41,12 +37,12 @@ impl<T: CoordFloat> TileCover for LineString<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for Line<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         let linestring: LineString<T> = self.into();
@@ -55,12 +51,12 @@ impl<T: CoordFloat> TileCover for Line<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for MultiLineString<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         for linestring in self.iter() {
@@ -70,12 +66,12 @@ impl<T: CoordFloat> TileCover for MultiLineString<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for Polygon<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         poly_cover(&mut tiles, self, zoom);
@@ -83,12 +79,12 @@ impl<T: CoordFloat> TileCover for Polygon<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for MultiPolygon<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         for polygon in self.iter() {
@@ -98,12 +94,12 @@ impl<T: CoordFloat> TileCover for MultiPolygon<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for Rect<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let min_tile = coord_to_tile(self.min(), zoom);
         let max_tile = coord_to_tile(self.max(), zoom);
 
@@ -117,12 +113,12 @@ impl<T: CoordFloat> TileCover for Rect<T> {
             }
         }
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for Triangle<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         let polygon: Polygon<T> = (*self).into();
@@ -131,27 +127,27 @@ impl<T: CoordFloat> TileCover for Triangle<T> {
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for GeometryCollection<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
 
         for geometry in self.iter() {
-            tiles.extend(geometry.tile_cover(zoom)?.into_iter());
+            tiles.extend(geometry.tile_cover(zoom).into_iter());
         }
 
         tiles.sort();
         tiles.dedup();
 
-        Ok(tiles)
+        tiles
     }
 }
 
 impl<T: CoordFloat> TileCover for Geometry<T> {
-    fn tile_cover(&self, zoom: u8) -> Result<Vec<(i32, i32, u8)>, Error> {
+    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
         match self {
             &Geometry::Point(ref point) => point.tile_cover(zoom),
             &Geometry::MultiPoint(ref multipoint) => multipoint.tile_cover(zoom),
@@ -406,13 +402,13 @@ mod tests {
     #[test]
     fn test_point() {
         let point = Point::new(-77.15664982795715, 38.87419791355846);
-        assert_eq!(point.tile_cover(1).unwrap(), vec![(0, 0, 1)]);
-        assert_eq!(point.tile_cover(2).unwrap(), vec![(1, 1, 2)]);
-        assert_eq!(point.tile_cover(3).unwrap(), vec![(2, 3, 3)]);
-        assert_eq!(point.tile_cover(4).unwrap(), vec![(4, 6, 4)]);
+        assert_eq!(point.tile_cover(1), vec![(0, 0, 1)]);
+        assert_eq!(point.tile_cover(2), vec![(1, 1, 2)]);
+        assert_eq!(point.tile_cover(3), vec![(2, 3, 3)]);
+        assert_eq!(point.tile_cover(4), vec![(4, 6, 4)]);
 
         let point = Point::new(-79.37969952821732, 38.8328422301817);
-        assert_eq!(point.tile_cover(14).unwrap(), vec![(4579, 6271, 14)]);
+        assert_eq!(point.tile_cover(14), vec![(4579, 6271, 14)]);
     }
 
     #[test]
@@ -424,14 +420,14 @@ mod tests {
             (-90.8349609375, 39.93711893299021),
         ]
         .into();
-        assert_eq!(points.tile_cover(1).unwrap(), vec![(0, 0, 1)]);
-        assert_eq!(points.tile_cover(2).unwrap(), vec![(0, 1, 2), (1, 1, 2)]);
-        assert_eq!(points.tile_cover(3).unwrap(), vec![(1, 3, 3), (2, 2, 3)]);
-        assert_eq!(points.tile_cover(4).unwrap(), vec![(3, 6, 4), (4, 5, 4)]);
+        assert_eq!(points.tile_cover(1), vec![(0, 0, 1)]);
+        assert_eq!(points.tile_cover(2), vec![(0, 1, 2), (1, 1, 2)]);
+        assert_eq!(points.tile_cover(3), vec![(1, 3, 3), (2, 2, 3)]);
+        assert_eq!(points.tile_cover(4), vec![(3, 6, 4), (4, 5, 4)]);
 
         let points: MultiPoint<f64> = vec![(-79.37969952821732, 38.8328422301817)].into();
 
-        assert_eq!(points.tile_cover(14).unwrap(), vec![(4579, 6271, 14)]);
+        assert_eq!(points.tile_cover(14), vec![(4579, 6271, 14)]);
     }
 
     #[test]
@@ -456,7 +452,7 @@ mod tests {
         ]);
 
         assert_eq!(
-            line.tile_cover(12).unwrap(),
+            line.tile_cover(12),
             vec![
                 (839, 1707, 12),
                 (839, 1708, 12),
@@ -496,7 +492,7 @@ mod tests {
             },
         ]);
 
-        assert_eq!(line.tile_cover(14).unwrap(), vec![(4579, 6271, 14),])
+        assert_eq!(line.tile_cover(14), vec![(4579, 6271, 14),])
     }
 
     #[test]
@@ -641,7 +637,7 @@ mod tests {
         ]);
 
         assert_eq!(
-            line.tile_cover(14).unwrap(),
+            line.tile_cover(14),
             vec![(4543, 6612, 14), (4544, 6612, 14)]
         )
     }
@@ -700,7 +696,7 @@ mod tests {
         ]);
 
         assert_eq!(
-            line.tile_cover(8).unwrap(),
+            line.tile_cover(8),
             vec![
                 (128, 87, 8),
                 (129, 86, 8),
@@ -760,10 +756,7 @@ mod tests {
             Vec::<LineString<f64>>::new(),
         );
 
-        assert_eq!(
-            poly.tile_cover(8).unwrap(),
-            vec![(131, 112, 8), (131, 113, 8)]
-        );
+        assert_eq!(poly.tile_cover(8), vec![(131, 112, 8), (131, 113, 8)]);
     }
 
     #[test]
@@ -827,7 +820,7 @@ mod tests {
         );
 
         assert_eq!(
-            poly.tile_cover(18).unwrap(),
+            poly.tile_cover(18),
             vec![
                 (74890, 100305, 18),
                 (74891, 100305, 18),
@@ -990,7 +983,7 @@ mod tests {
         );
 
         assert_eq!(
-            poly.tile_cover(16).unwrap(),
+            poly.tile_cover(16),
             vec![
                 (18884, 23453, 16),
                 (18884, 23454, 16),
@@ -1311,11 +1304,11 @@ mod tests {
         let rect = Rect::new(coord! { x: -30., y: 57. }, coord! { x: -28., y: 59. });
         let poly: Polygon<_> = rect.into();
 
-        let single_tile_cover = rect.tile_cover(5).unwrap();
+        let single_tile_cover = rect.tile_cover(5);
         assert_eq!(single_tile_cover, vec![(13, 9, 5)]);
-        assert_eq!(single_tile_cover, poly.tile_cover(5).unwrap());
+        assert_eq!(single_tile_cover, poly.tile_cover(5));
 
-        let multi_tile_cover = rect.tile_cover(7).unwrap();
+        let multi_tile_cover = rect.tile_cover(7);
         assert_eq!(
             multi_tile_cover,
             vec![
@@ -1327,7 +1320,7 @@ mod tests {
                 (54, 39, 7)
             ]
         );
-        assert_eq!(multi_tile_cover, poly.tile_cover(7).unwrap());
+        assert_eq!(multi_tile_cover, poly.tile_cover(7));
     }
 
     #[test]
