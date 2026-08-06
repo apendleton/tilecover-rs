@@ -1,6 +1,7 @@
 [package]
 name = "tilecover"
-version = "2.0.0"
+version = "3.0.0"
+edition = "2024"
 authors = ["ingalls <ingalls@protonmail.com>"]
 description = "Generate the minimum number of tiles to cover a geometry"
 
@@ -13,4 +14,4 @@ categories = ["algorithms"]
 license = "MIT"
 
 [dependencies]
-geo = "0.14.0"
+geo-types = "^0.7"
