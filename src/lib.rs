@@ -275,11 +275,11 @@ pub fn line_cover<T: CoordFloat>(
         let tdy = (sy / dy).abs();
 
         if Some(x) != prev_x || Some(y) != prev_y {
-            tiles.push((x.to_i32().unwrap(), y.to_i32().unwrap(), zoom));
+            tiles.push((to_i32(x), to_i32(y), zoom));
 
             if ring != None && Some(y) != prev_y {
                 match ring {
-                    Some(ref mut r) => r.push((x.to_i32().unwrap(), y.to_i32().unwrap())),
+                    Some(ref mut r) => r.push((to_i32(x), to_i32(y))),
                     _ => (),
                 };
             }
@@ -297,11 +297,11 @@ pub fn line_cover<T: CoordFloat>(
                 y = y + sy;
             }
 
-            tiles.push((x.to_i32().unwrap(), y.to_i32().unwrap(), zoom));
+            tiles.push((to_i32(x), to_i32(y), zoom));
 
             if ring != None && Some(y) != prev_y {
                 match ring {
-                    Some(ref mut r) => r.push((x.to_i32().unwrap(), y.to_i32().unwrap())),
+                    Some(ref mut r) => r.push((to_i32(x), to_i32(y))),
                     _ => (),
                 };
             }
@@ -313,7 +313,7 @@ pub fn line_cover<T: CoordFloat>(
     if ring != None {
         match ring {
             Some(ref mut r) => {
-                if r.len() > 0 && y.to_i32().unwrap() == r[0].1 {
+                if r.len() > 0 && to_i32(y) == r[0].1 {
                     r.pop();
                 }
             }
@@ -368,8 +368,8 @@ pub fn coord_to_tile<T: CoordFloat>(coord: Coord<T>, z: u8) -> (i32, i32, u8) {
     let tile_frac = coord_to_tile_fraction(coord, z);
 
     (
-        tile_frac.0.floor().to_i32().unwrap(),
-        tile_frac.1.floor().to_i32().unwrap(),
+        to_i32(tile_frac.0.floor()),
+        to_i32(tile_frac.1.floor()),
         tile_frac.2,
     )
 }
@@ -393,6 +393,16 @@ pub fn coord_to_tile_fraction<T: CoordFloat>(coord: Coord<T>, z: u8) -> (T, T, u
     }
 
     (x, y, z)
+}
+
+fn to_i32<T: CoordFloat>(value: T) -> i32 {
+    value.to_i32().unwrap_or_else(|| {
+        if value.is_sign_negative() {
+            i32::MIN
+        } else {
+            i32::MAX
+        }
+    })
 }
 
 #[cfg(test)]
