@@ -379,7 +379,7 @@ pub fn coord_to_tile_fraction<T: CoordFloat>(coord: Coord<T>, z: u8) -> (T, T, u
     let sin = coord.y.to_radians().sin();
     let base: T = T::one() + T::one();
 
-    let z2: T = base.powf(T::from(z).unwrap());
+    let z2: T = base.powi(z.into());
     let mut x = z2 * (coord.x / T::from(360.0).unwrap() + T::from(0.5).unwrap());
     let y = z2
         * (T::from(0.5).unwrap()
