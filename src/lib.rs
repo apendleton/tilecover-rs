@@ -2,19 +2,21 @@ use std::f64::consts::PI;
 
 use geo_types::*;
 
+pub type Tile = (i32, i32, u8);
+
 pub trait TileCover {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)>;
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile>;
 }
 
 impl<T: CoordFloat> TileCover for Point<T> {
     /// Get a list of all tiles covering a given geometry
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
         vec![coord_to_tile(self.0, zoom)]
     }
 }
 
 impl<T: CoordFloat> TileCover for MultiPoint<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
         let mut tiles: Vec<_> = self
             .0
             .iter()
@@ -29,8 +31,8 @@ impl<T: CoordFloat> TileCover for MultiPoint<T> {
 }
 
 impl<T: CoordFloat> TileCover for LineString<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         line_cover(&mut tiles, self, zoom, None);
 
@@ -42,8 +44,8 @@ impl<T: CoordFloat> TileCover for LineString<T> {
 }
 
 impl<T: CoordFloat> TileCover for Line<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         let linestring: LineString<T> = self.into();
         line_cover(&mut tiles, &linestring, zoom, None);
@@ -56,8 +58,8 @@ impl<T: CoordFloat> TileCover for Line<T> {
 }
 
 impl<T: CoordFloat> TileCover for MultiLineString<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         for linestring in self.iter() {
             line_cover(&mut tiles, linestring, zoom, None);
@@ -71,8 +73,8 @@ impl<T: CoordFloat> TileCover for MultiLineString<T> {
 }
 
 impl<T: CoordFloat> TileCover for Polygon<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         poly_cover(&mut tiles, self, zoom);
 
@@ -84,8 +86,8 @@ impl<T: CoordFloat> TileCover for Polygon<T> {
 }
 
 impl<T: CoordFloat> TileCover for MultiPolygon<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         for polygon in self.iter() {
             poly_cover(&mut tiles, polygon, zoom);
@@ -99,13 +101,13 @@ impl<T: CoordFloat> TileCover for MultiPolygon<T> {
 }
 
 impl<T: CoordFloat> TileCover for Rect<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
         let min_tile = coord_to_tile(self.min(), zoom);
         let max_tile = coord_to_tile(self.max(), zoom);
 
         let tile_count: usize =
             ((max_tile.0 - min_tile.0 + 1) * (min_tile.1 - max_tile.1 + 1)) as usize;
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::with_capacity(tile_count);
+        let mut tiles: Vec<Tile> = Vec::with_capacity(tile_count);
 
         for x in min_tile.0..=max_tile.0 {
             for y in max_tile.1..=min_tile.1 {
@@ -118,8 +120,8 @@ impl<T: CoordFloat> TileCover for Rect<T> {
 }
 
 impl<T: CoordFloat> TileCover for Triangle<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         let polygon: Polygon<T> = (*self).into();
         poly_cover(&mut tiles, &polygon, zoom);
@@ -132,8 +134,8 @@ impl<T: CoordFloat> TileCover for Triangle<T> {
 }
 
 impl<T: CoordFloat> TileCover for GeometryCollection<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
-        let mut tiles: Vec<(i32, i32, u8)> = Vec::new();
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
 
         for geometry in self.iter() {
             tiles.extend(geometry.tile_cover(zoom).into_iter());
@@ -147,7 +149,7 @@ impl<T: CoordFloat> TileCover for GeometryCollection<T> {
 }
 
 impl<T: CoordFloat> TileCover for Geometry<T> {
-    fn tile_cover(&self, zoom: u8) -> Vec<(i32, i32, u8)> {
+    fn tile_cover(&self, zoom: u8) -> Vec<Tile> {
         match self {
             &Geometry::Point(ref point) => point.tile_cover(zoom),
             &Geometry::MultiPoint(ref multipoint) => multipoint.tile_cover(zoom),
@@ -163,7 +165,7 @@ impl<T: CoordFloat> TileCover for Geometry<T> {
     }
 }
 
-pub fn poly_cover<T: CoordFloat>(tiles: &mut Vec<(i32, i32, u8)>, polygon: &Polygon<T>, zoom: u8) {
+pub fn poly_cover<T: CoordFloat>(tiles: &mut Vec<Tile>, polygon: &Polygon<T>, zoom: u8) {
     let mut intersections: Vec<(i32, i32)> = Vec::new();
 
     poly_cover_single(&mut intersections, tiles, &polygon.exterior(), zoom);
@@ -193,7 +195,7 @@ pub fn poly_cover<T: CoordFloat>(tiles: &mut Vec<(i32, i32, u8)>, polygon: &Poly
 
 fn poly_cover_single<T: CoordFloat>(
     intersections: &mut Vec<(i32, i32)>,
-    tiles: &mut Vec<(i32, i32, u8)>,
+    tiles: &mut Vec<Tile>,
     linestring: &LineString<T>,
     zoom: u8,
 ) {
@@ -226,7 +228,7 @@ fn poly_cover_single<T: CoordFloat>(
 }
 
 pub fn line_cover<T: CoordFloat>(
-    tiles: &mut Vec<(i32, i32, u8)>,
+    tiles: &mut Vec<Tile>,
     linestring: &LineString<T>,
     zoom: u8,
     mut ring: Option<&mut Vec<(i32, i32)>>,
@@ -322,7 +324,7 @@ pub fn line_cover<T: CoordFloat>(
     }
 }
 
-pub fn get_children(tile: (i32, i32, u8)) -> Vec<(i32, i32, u8)> {
+pub fn get_children(tile: Tile) -> Vec<Tile> {
     vec![
         (tile.0 * 2, tile.1 * 2, tile.2 + 1),
         (tile.0 * 2 + 1, tile.1 * 2, tile.2 + 1),
@@ -331,16 +333,16 @@ pub fn get_children(tile: (i32, i32, u8)) -> Vec<(i32, i32, u8)> {
     ]
 }
 
-pub fn get_parent(tile: (i32, i32, u8)) -> (i32, i32, u8) {
+pub fn get_parent(tile: Tile) -> Tile {
     (tile.0 >> 1, tile.1 >> 1, tile.2 - 1)
 }
 
-pub fn get_siblings(tile: (i32, i32, u8)) -> Vec<(i32, i32, u8)> {
+pub fn get_siblings(tile: Tile) -> Vec<Tile> {
     get_children(get_parent(tile))
 }
 
 /// Get the bounds of a tile, returned as a Rect<T>
-pub fn tile_to_bbox<T: CoordFloat>(tile: (i32, i32, u8)) -> Rect<T> {
+pub fn tile_to_bbox<T: CoordFloat>(tile: Tile) -> Rect<T> {
     Rect::new(
         coord! { x: tile_to_lon(tile.0, tile.2), y: tile_to_lat(tile.1 + 1, tile.2) },
         coord! { x: tile_to_lon(tile.0 + 1, tile.2), y: tile_to_lat(tile.1, tile.2) },
@@ -364,7 +366,7 @@ pub fn tile_to_lat<T: CoordFloat>(y: i32, z: u8) -> T {
 }
 
 /// Get the tile for a point at a specified zoom level
-pub fn coord_to_tile<T: CoordFloat>(coord: Coord<T>, z: u8) -> (i32, i32, u8) {
+pub fn coord_to_tile<T: CoordFloat>(coord: Coord<T>, z: u8) -> Tile {
     let tile_frac = coord_to_tile_fraction(coord, z);
 
     (
